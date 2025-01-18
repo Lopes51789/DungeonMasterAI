@@ -1,6 +1,6 @@
 import requests
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class Spell:
@@ -54,42 +54,60 @@ def get_item(item_name = "NaN"):
     """
     Given an item name, returns an Item object with the properties of the item. If the given name is "NaN", returns None.
     """
-    
     url = "https://www.dnd5eapi.co/api/equipment/" + item_name
     response = requests.get(url)
     if response.status_code == 200:
         return Item(**response.json())
     return None
 
-
-
 class PlayableCharacter:
-    def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None):
+    def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = []):
+        valid_backgrounds = ["Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero", "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage", "Sailor", "Soldier", "Urchin"]
+        valid_alignments = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]
+        valid_races = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Halfling", "Half-Orc", "Human", "Tiefling"]
+        valid_classes = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard"]
+
         self.name = name
-        self.background = background
-        self.alignment = alignment
-        self.race = race
-        self.player_class = player_class
+        if background in valid_backgrounds:
+            self.background = background
+        if alignment in valid_alignments:
+            self.alignment = alignment
+        if race in valid_races:
+            self.race = race
+        if player_class in valid_classes:
+            self.player_class = player_class
+        if player_subclass in valid_classes:
+            self.player_subclass = player_subclass
+
         self.inventory = {}
+        self.carry_capacity = 100 #depends from race
+        self.carry_current = 0
+        self.equipped_items = {"Head": None, "Body": None, "Cape": None, "Hands": None, "Feet": None, "Main Hand": None, "Off Hand": None}
         self.spells = []
-        self.level = 1
-        self.__level_acm = 0
-        self.__level_threshold = 100
+        self.__level = 1
+        self._level_acm = 0
+        self._level_threshold = 100
 
     def get_player_name(self):
         return self.name
     
     def get_level(self):
-        return self.level
+        return self.__level
     
     def get_inventory(self):
         return self.inventory
     
     def get_spells(self):
         return self.spells
-    
+    def set_level(self, level):
+        self.__level = level
     def __str__(self):
         return f"{self.name} is a {self.background} {self.alignment} {self.race} {self.player_class}"
+    
+    def can_level_up(self):
+        if self.level < 20 and self.level_acm >= self.level_threshold:
+            return True
+        return False
 
     def level_up(self):
         """
@@ -103,10 +121,32 @@ class PlayableCharacter:
         Returns:
             None
         """
-        if self.level < 20 and self.level_acm >= self.level_threshold:
-            self.level += 1
+        if self.can_level_up():
+            self.set_level(self.get_level() + 1)
             self.level_acm = 0
             self.level_threshold *= 20
+
+    def can_add_spell(self, spell: Spell):
+        """
+        Checks if a player can add a given spell to their spellbook.
+
+        Checks if the spell is of a level that the player can cast, and if it is
+        of a class or subclass that the player is capable of casting.
+
+        Args:
+            spell: The spell to check.
+
+        Returns:
+            True if the player can add the spell, False otherwise.
+        """
+       
+        classes = [cls["name"] for cls in spell.classes]
+        subclasses = [subcls["name"] for subcls in spell.subclasses]
+        
+        if spell.level <= self.__level and (self.player_class in classes or self.player_subclass in subclasses):
+            return True
+        return False
+    
 
     def add_spell(self, spell: Spell):
         """
@@ -118,10 +158,18 @@ class PlayableCharacter:
         Returns:
             None
         """
+        if self.can_add_spell(spell):
+            self.spells.append(spell.name)
+        else:
+            print(f"{spell.name} is not a spell for your class.")
 
-        self.spells.append(spell)
 
-    def add_item(self, item: Item):
+    def can_add_item(self, item: Item, quantity = 1):
+        if self.carry_current + (item.weight * quantity) <= self.carry_capacity and item.weight <= self.carry_capacity:
+            return True
+        return False
+
+    def add_item(self, item: Item, quantity = 1):
         """
         Adds an item to the character's inventory.
 
@@ -131,10 +179,13 @@ class PlayableCharacter:
         Returns:
             None
         """
+        if self.can_add_item(item, quantity=quantity):
+            self.inventory[item.name] += quantity
 
-        self.inventory.append(item)
+        else:
+            print(f"{item.name} is too heavy for you to carry.")
 
-    def use_item(self, item: Item):
+    def use_consumable_item(self, item: Item):
         """
         Removes one instance of the given item from the character's inventory.
 
@@ -165,11 +216,12 @@ def test():
     fireball = get_spell("fireball")
     print(fireball.name)
 
-    pc1 = PlayableCharacter("Char1")
+    pc1 = PlayableCharacter("Char1", player_class="Wizard")
     print(pc1)
 
     shovel = get_item("shovel")
-    print(shovel.name)
+    print(shovel)
+
 
     pass
 
