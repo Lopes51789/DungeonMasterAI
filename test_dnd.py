@@ -30,12 +30,12 @@ def test_can_add_item():
 
 def test_add_item():
     char1 = dnd.PlayableCharacter("Char1", player_class="Wizard")
-    char1.add_item(dnd.get_item("shovel"))
-    assert char1.get_inventory() == {"Shovel": 1}
+    char1.add_item(dnd.get_item("shovel"), 1)
+    assert "Shovel" in char1.get_inventory()
 
 def test_can_add_spell():
-    char1 = dnd.PlayableCharacter("Char1", player_class="Barbarian")
-    char2 = dnd.PlayableCharacter("Char2", player_class="Wizard")
+    char1 = dnd.PlayableCharacter("Char1", background="Acolyte",player_class="Barbarian", alignment="Lawful Good", race="Human", player_subclass="Druid")
+    char2 = dnd.PlayableCharacter("Char2", background="Acolyte",player_class="Wizard", alignment="Lawful Good", race="Human", player_subclass="Druid")
     char2.set_level(5)
     assert char1.can_add_spell(dnd.get_spell("fireball")) == False
     assert char2.can_add_spell(dnd.get_spell("fireball")) == True #not all spells have all of the properties

@@ -61,24 +61,28 @@ def get_item(item_name = "NaN"):
     return None
 
 class PlayableCharacter:
-    def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = []):
-        valid_backgrounds = ["Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero", "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage", "Sailor", "Soldier", "Urchin"]
-        valid_alignments = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]
-        valid_races = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Halfling", "Half-Orc", "Human", "Tiefling"]
-        valid_classes = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard"]
-
+    valid_backgrounds = ["Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero", "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage", "Sailor", "Soldier", "Urchin"]
+    valid_alignments = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]
+    valid_races = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Halfling", "Half-Orc", "Human", "Tiefling"]
+    valid_classes = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard"]
+    def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = None):
         self.name = name
-        if background in valid_backgrounds:
-            self.background = background
-        if alignment in valid_alignments:
-            self.alignment = alignment
-        if race in valid_races:
-            self.race = race
-        if player_class in valid_classes:
-            self.player_class = player_class
-        if player_subclass in valid_classes:
-            self.player_subclass = player_subclass
-
+        if background not in self.valid_backgrounds:
+            raise ValueError(f"Invalid background: {background}. Must be one of: {', '.join(self.valid_backgrounds)}")
+        if alignment not in self.valid_alignments:
+            raise ValueError(f"Invalid alignment: {alignment}. Must be one of: {', '.join(self.valid_alignments)}")
+        if race not in self.valid_races:
+            raise ValueError(f"Invalid race: {race}. Must be one of: {', '.join(self.valid_races)}")
+        if player_class not in self.valid_classes:
+            raise ValueError(f"Invalid class: {player_class}. Must be one of: {', '.join(self.valid_classes)}")
+        if player_subclass not in self.valid_classes:
+            raise ValueError(f"Invalid subclass: {player_subclass}. Must be one of: {', '.join(self.valid_classes)}")
+        
+        self.background = background
+        self.alignment = alignment
+        self.race = race
+        self.player_class = player_class
+        self.player_subclass = player_subclass        
         self.inventory = {}
         self.carry_capacity = 100 #depends from race
         self.carry_current = 0
@@ -165,7 +169,7 @@ class PlayableCharacter:
 
 
     def can_add_item(self, item: Item, quantity = 1):
-        if self.carry_current + (item.weight * quantity) <= self.carry_capacity and item.weight <= self.carry_capacity:
+        if self.carry_current + (item.weight * quantity) <= self.carry_capacity:
             return True
         return False
 
@@ -179,8 +183,12 @@ class PlayableCharacter:
         Returns:
             None
         """
-        if self.can_add_item(item, quantity=quantity):
-            self.inventory[item.name] += quantity
+        if self.can_add_item(item, quantity):
+            if item.name not in self.inventory:
+                self.inventory[item.name] = quantity
+            elif item.name in self.inventory:
+                self.inventory[item.name] += quantity
+            self.carry_current += (item.weight * quantity)
 
         else:
             print(f"{item.name} is too heavy for you to carry.")
@@ -211,16 +219,42 @@ class PlayableCharacter:
 
         else:
             print(f"{item} is not in your inventory.")
+
+    def _toJson(self):
+        data = {
+            "name": self.name,
+            "background": self.background,
+            "alignment": self.alignment,
+            "race": self.race,
+            "player_class": self.player_class,
+            "player_subclass": self.player_subclass,
+            "inventory": self.inventory,
+            "carry_capacity": self.carry_capacity,
+            "carry_current": self.carry_current,
+            "equipped_items": self.equipped_items,
+            "spells": self.spells,
+            "level": self.__level,
+            "level_acm": self._level_acm,
+            "level_threshold": self._level_threshold
+        }
+        return json.dumps(data, indent=4)
+    
+    def toJsonFile(self):
+        with open(f"{self.name}.json", "w") as f:
+            f.write(self._toJson())
     
 def test():
-    fireball = get_spell("fireball")
+    """fireball = get_spell("fireball")
     print(fireball.name)
 
     pc1 = PlayableCharacter("Char1", player_class="Wizard")
     print(pc1)
 
     shovel = get_item("shovel")
-    print(shovel)
+    print(shovel)"""
+
+    """spell = get_spell("fireball")
+    print(spell)"""
 
 
     pass
