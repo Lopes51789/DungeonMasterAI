@@ -33,7 +33,9 @@ def get_spell(spell_name = "NaN"):
     response = requests.get(ulr)
     if response.status_code == 200:
         return Spell(**response.json())
-    return None
+    else:
+        print(f"Spell {spell_name} not found")
+        return None
 
 @dataclass
 class Item:
@@ -58,7 +60,37 @@ def get_item(item_name = "NaN"):
     response = requests.get(url)
     if response.status_code == 200:
         return Item(**response.json())
-    return None
+    else:
+        print(f"Item {item_name} not found")
+        return None
+
+@dataclass
+class MagicalItem:
+    desc: list
+    special: list
+    index: str
+    name: str
+    equipment_category: dict
+    gear_category: dict
+    cost: dict
+    weight: str
+    url: str
+    updated_at: str
+    contents: list
+    properties: list
+
+def get_magical_item(item_name = "NaN"):
+    """
+    Given an item name, returns an Item object with the properties of the item. If the given name is "NaN", returns None.
+    """
+    url = "https://www.dnd5eapi.co/api/magical-items/" + item_name
+    response = requests.get(url)
+    if response.status_code == 200:
+        return Item(**response.json())
+    else:
+        print(f"Item {item_name} not found")
+        return None
+    
 
 class PlayableCharacter:
     valid_backgrounds = ["Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero", "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage", "Sailor", "Soldier", "Urchin"]
