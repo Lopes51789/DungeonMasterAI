@@ -1,6 +1,4 @@
 import dnd
-import discordBot
-
 
 def test_existing_spells():
     assert dnd.get_spell("fireball").name == "Fireball"
