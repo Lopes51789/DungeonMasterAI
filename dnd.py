@@ -65,25 +65,23 @@ def get_item(item_name = "NaN"):
         return None
 
 @dataclass
-class MagicalItem:
-    desc: list
-    special: list
+class MagicItem:
     index: str
     name: str
     equipment_category: dict
-    gear_category: dict
-    cost: dict
-    weight: str
+    rarity: str
+    variants: list
+    variant: bool
+    desc: list
+    image: str
     url: str
     updated_at: str
-    contents: list
-    properties: list
 
-def get_magical_item(item_name = "NaN"):
+def get_magic_item(item_name = "NaN"):
     """
     Given an item name, returns an Item object with the properties of the item. If the given name is "NaN", returns None.
     """
-    url = "https://www.dnd5eapi.co/api/magical-items/" + item_name
+    url = "https://www.dnd5eapi.co/api/magic-items/" + item_name
     response = requests.get(url)
     if response.status_code == 200:
         return Item(**response.json())
@@ -271,7 +269,7 @@ class PlayableCharacter:
         }
         return json.dumps(data, indent=4)
     
-    def toJsonFile(self):
+    def save(self):
         with open(f"{self.name}.json", "w") as f:
             f.write(self._toJson())
     

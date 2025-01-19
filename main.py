@@ -8,13 +8,13 @@ def test():
     char1.add_item(item1, 5)
     print(char1)
     print(char1.get_inventory())
-    char1.toJsonFile()
+    char1.save()
     char1.add_item(item1, 5)
-    char1.toJsonFile()
+    char1.save()
     pass
     
 
 if __name__ == "__main__":
     test()
     
-
+    pass
