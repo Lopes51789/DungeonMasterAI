@@ -46,7 +46,7 @@ class Item:
     equipment_category: dict
     gear_category: dict
     cost: dict
-    weight: str
+    #weight: str
     url: str
     updated_at: str
     contents: list
@@ -69,7 +69,7 @@ class MagicItem:
     index: str
     name: str
     equipment_category: dict
-    rarity: str
+    rarity: dict
     variants: list
     variant: bool
     desc: list
@@ -79,22 +79,51 @@ class MagicItem:
 
 def get_magic_item(item_name = "NaN"):
     """
-    Given an item name, returns an Item object with the properties of the item. If the given name is "NaN", returns None.
+    Given an item name, returns an MagicItem object with the properties of the item. If the given name is "NaN", returns None.
     """
     url = "https://www.dnd5eapi.co/api/magic-items/" + item_name
     response = requests.get(url)
     if response.status_code == 200:
-        return Item(**response.json())
+        return MagicItem(**response.json())
     else:
         print(f"Item {item_name} not found")
         return None
     
+@dataclass
+class PlayerClass:
+    index: str
+    name: str
+    url: str
+    hit_die: int
+    class_levels: str
+    subclasses: list
+    multi_classing: dict
+    proficiency_choices: list
+    proficiencies: list
+    saving_throws: list
+    starting_equipment: list
+    starting_equipment_options: list
+    updated_at: str
+
+def get_player_class(class_name = "NaN"):
+    """
+    Given an item name, returns an MagicItem object with the properties of the item. If the given name is "NaN", returns None.
+    """
+    url = "https://www.dnd5eapi.co/api/classes/" + class_name
+    response = requests.get(url)
+    if response.status_code == 200:
+        return PlayerClass(**response.json())
+    else:
+        print(f"Class {class_name} not found")
+        return None
+
+    
 
 class PlayableCharacter:
-    valid_backgrounds = ["Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero", "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage", "Sailor", "Soldier", "Urchin"]
-    valid_alignments = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]
-    valid_races = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Halfling", "Half-Orc", "Human", "Tiefling"]
-    valid_classes = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard"]
+    valid_backgrounds = ["acolyte", "charlatan", "criminal", "entertainer", "folk-hero", "guild-artisan", "hermit", "noble", "outlander", "sage", "sailor", "soldier", "urchin"]
+    valid_alignments = ["lawful-good", "lawful-neutral", "lawful-evil", "neutral-good", "neutral-neutral", "neutral-evil", "chaotic-good", "chaotic-neutral", "chaotic-evil"]
+    valid_races = ["dragonborn", "dwarf", "elf", "gnome", "half-elf", "halfling", "half-orc", "human", "tiefling"]
+    valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
     def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = None):
         self.name = name
         if background not in self.valid_backgrounds:
@@ -111,11 +140,23 @@ class PlayableCharacter:
         self.background = background
         self.alignment = alignment
         self.race = race
-        self.player_class = player_class
-        self.player_subclass = player_subclass        
+
+        char_class = get_player_class(player_class)
+        self.player_class = char_class.name
+        self.player_subclass = char_class.subclasses
+
+        #print(char_class.starting_equipment)
+        #print(char_class.starting_equipment[0]["equipment"]["name"])
+        #print(char_class.starting_equipment[0]["quantity"])
+
         self.inventory = {}
         self.carry_capacity = 100 #depends from race
         self.carry_current = 0
+
+        for i in range(len(char_class.starting_equipment)):
+            self.add_item(char_class.starting_equipment[i]["equipment"]["index"], char_class.starting_equipment[i]["quantity"])
+        
+        
         self.equipped_items = {"Head": None, "Body": None, "Cape": None, "Hands": None, "Feet": None, "Main Hand": None, "Off Hand": None}
         self.spells = []
         self.__level = 1
@@ -198,12 +239,12 @@ class PlayableCharacter:
             print(f"{spell.name} is not a spell for your class.")
 
 
-    def can_add_item(self, item: Item, quantity = 1):
+    """def can_add_item(self, item: Item, quantity = 1):
         if self.carry_current + (item.weight * quantity) <= self.carry_capacity:
             return True
-        return False
+        return False"""
 
-    def add_item(self, item: Item, quantity = 1):
+    def add_item(self, item, quantity = 1):
         """
         Adds an item to the character's inventory.
 
@@ -213,15 +254,11 @@ class PlayableCharacter:
         Returns:
             None
         """
-        if self.can_add_item(item, quantity):
-            if item.name not in self.inventory:
-                self.inventory[item.name] = quantity
-            elif item.name in self.inventory:
-                self.inventory[item.name] += quantity
-            self.carry_current += (item.weight * quantity)
-
+        if item not in self.inventory:
+            self.inventory[item] = quantity
         else:
-            print(f"{item.name} is too heavy for you to carry.")
+            self.inventory[item] += quantity
+
 
     def use_consumable_item(self, item: Item):
         """
@@ -274,18 +311,16 @@ class PlayableCharacter:
             f.write(self._toJson())
     
 def test():
-    """fireball = get_spell("fireball")
-    print(fireball.name)
-
-    pc1 = PlayableCharacter("Char1", player_class="Wizard")
+    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="human", player_subclass="sorcerer")
     print(pc1)
+    print(pc1.get_inventory())
 
-    shovel = get_item("shovel")
-    print(shovel)"""
 
-    """spell = get_spell("fireball")
-    print(spell)"""
+    """adamantine_armor = get_magic_item("adamantine-armor")
+    print(adamantine_armor.name)
 
+    barbarian = get_player_class("barbarian")
+    print(barbarian.name)"""
 
     pass
 

@@ -43,3 +43,6 @@ def test_set_level():
     char1.set_level(5)
     assert char1.get_level() == 5
     
+
+def test_get_player_class():
+    assert dnd.get_player_class("barbarian").name == "Barbarian"
