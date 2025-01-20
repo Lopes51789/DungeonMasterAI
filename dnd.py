@@ -24,6 +24,8 @@ class Spell:
     area_of_effect: dict
     url: str
     updated_at: str
+    count: int = field(default=None)
+    results: str = field(default=None)
 
 def get_spell(spell_name = "NaN"):
     """
@@ -35,6 +37,20 @@ def get_spell(spell_name = "NaN"):
         return Spell(**response.json())
     else:
         print(f"Spell {spell_name} not found")
+        return None
+    
+@dataclass
+class ClassSpell:
+    count: int = field(default=None)
+    results: list = field(default=None)
+    
+def get_class_spell(character_class = "NaN"):
+    ulr = f"https://www.dnd5eapi.co/api/classes/{character_class.lower()}/spells/"
+    response = requests.get(ulr)
+    if response.status_code == 200:
+        return ClassSpell(**response.json())
+    else:
+        print(f"Class {character_class} not found")
         return None
 
 @dataclass
@@ -107,7 +123,6 @@ class PlayerClass:
     spellcasting: dict = field(default=None)
     spells: list = field(default=None)
 
-
 def get_player_class(class_name = "NaN"):
     """
     Given an item name, returns an MagicItem object with the properties of the item. If the given name is "NaN", returns None.
@@ -120,7 +135,37 @@ def get_player_class(class_name = "NaN"):
         print(f"Class {class_name} not found")
         return None
 
-    
+@dataclass
+class Race:
+    index: str
+    name: str
+    speed: int
+    ability_bonuses: list
+    alignment: str
+    age: str
+    size: str
+    size_description: str
+    starting_proficiencies: list
+    languages: list
+    language_desc: str
+    traits: list
+    subraces: list
+    url: str
+    updated_at: str
+    starting_proficiency_options: list = field(default=None)
+    language_options: list = field(default=None)
+
+def get_player_race(race = "NaN"):
+    """
+    Given an race, returns an Race object with the properties of the race. If the given name is "NaN", returns None.
+    """
+    url = "https://www.dnd5eapi.co/api/races/" + race
+    response = requests.get(url)
+    if response.status_code == 200:
+        return Race(**response.json())
+    else:
+        print(f"Race {race} not found")
+        return None
 
 class PlayableCharacter:
     valid_backgrounds = ["acolyte", "charlatan", "criminal", "entertainer", "folk-hero", "guild-artisan", "hermit", "noble", "outlander", "sage", "sailor", "soldier", "urchin"]
@@ -149,10 +194,6 @@ class PlayableCharacter:
         self.player_class = char_class.name
         self.player_subclass = player_subclass
 
-        #print(char_class.starting_equipment)
-        #print(char_class.starting_equipment[0]["equipment"]["name"])
-        #print(char_class.starting_equipment[0]["quantity"])
-
         self.inventory = {}
         self.carry_capacity = 100 #depends from race
         self.carry_current = 0
@@ -174,9 +215,14 @@ class PlayableCharacter:
             else:
                 raise ValueError(f"Invalid input: {temp_item}. Must be one of: {', '.join(['a', 'b', 'c'])}")
             
+        self.equipped_items = {"Head": None, "Body": None, "Cape": None, "Hands": None, "Feet": None, "Main Hand": None, "Off Hand": None}
+            
         self.proficiencies = []
-        
-        #For proficiencies
+        #For proficiency
+        for i in range(len(char_class.proficiencies)):
+            self.proficiencies.append(char_class.proficiencies[i]["index"])
+
+        #For proficiency options
         for i in range(len(char_class.proficiency_choices)):
             temp_choice = str(input(f"{char_class.proficiency_choices[i]["desc"]} (write the skill in lowercase and \'-\' for spaces): "))
             choices = temp_choice.split(", ")
@@ -184,10 +230,18 @@ class PlayableCharacter:
             for item in choices_list:
                 self.proficiencies.append(item)
 
-            break
+        #For race proficiencies
+        char_race = get_player_race(self.race)
+        for i in range(len(char_race.starting_proficiencies)):
+            self.proficiencies.append(char_race.starting_proficiencies[i]["index"])
 
-        self.equipped_items = {"Head": None, "Body": None, "Cape": None, "Hands": None, "Feet": None, "Main Hand": None, "Off Hand": None}
         self.spells = []
+        #append spells if any
+        char_spells = get_class_spell(self.player_class)
+        for i in range(char_spells.count):
+            if char_spells.results[i]["level"] == 0:
+                self.spells.append(char_spells.results[i]["index"])
+
         self.__level = 1
         self._level_acm = 0
         self._level_threshold = 100
@@ -251,7 +305,6 @@ class PlayableCharacter:
             return True
         return False
     
-
     def add_spell(self, spell: Spell):
         """
         Adds a spell to the character's list of spells.
@@ -332,7 +385,8 @@ class PlayableCharacter:
             "level": self.__level,
             "level_acm": self._level_acm,
             "level_threshold": self._level_threshold,
-            "proficiencies": self.proficiencies
+            "proficiencies": self.proficiencies,
+            "spells": self.spells
         }
         return json.dumps(data, indent=4)
     
@@ -342,10 +396,9 @@ class PlayableCharacter:
     
 def test():
     #valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
-    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="human")
+    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="elf")
     print(pc1)
     print(pc1.get_inventory())
-    print(pc1.proficiencies)
     pc1.save()
 
 
