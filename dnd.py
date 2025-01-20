@@ -104,6 +104,9 @@ class PlayerClass:
     starting_equipment: list
     starting_equipment_options: list
     updated_at: str
+    spellcasting: dict = field(default=None)
+    spells: list = field(default=None)
+
 
 def get_player_class(class_name = "NaN"):
     """
@@ -124,6 +127,7 @@ class PlayableCharacter:
     valid_alignments = ["lawful-good", "lawful-neutral", "lawful-evil", "neutral-good", "neutral-neutral", "neutral-evil", "chaotic-good", "chaotic-neutral", "chaotic-evil"]
     valid_races = ["dragonborn", "dwarf", "elf", "gnome", "half-elf", "halfling", "half-orc", "human", "tiefling"]
     valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
+    valid_subclasses = [None, "berzerk", "champion", "devotion", "draconic", "evocation", "fiend", "hunter", "land", "life", "lore", "open-hand", "thief"]
     def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = None):
         self.name = name
         if background not in self.valid_backgrounds:
@@ -134,8 +138,8 @@ class PlayableCharacter:
             raise ValueError(f"Invalid race: {race}. Must be one of: {', '.join(self.valid_races)}")
         if player_class not in self.valid_classes:
             raise ValueError(f"Invalid class: {player_class}. Must be one of: {', '.join(self.valid_classes)}")
-        if player_subclass not in self.valid_classes:
-            raise ValueError(f"Invalid subclass: {player_subclass}. Must be one of: {', '.join(self.valid_classes)}")
+        if player_subclass not in self.valid_subclasses:
+            raise ValueError(f"Invalid subclass: {player_subclass}. Must be one of: {', '.join(self.valid_subclasses)}")
         
         self.background = background
         self.alignment = alignment
@@ -143,7 +147,7 @@ class PlayableCharacter:
 
         char_class = get_player_class(player_class)
         self.player_class = char_class.name
-        self.player_subclass = char_class.subclasses
+        self.player_subclass = player_subclass
 
         #print(char_class.starting_equipment)
         #print(char_class.starting_equipment[0]["equipment"]["name"])
@@ -153,10 +157,35 @@ class PlayableCharacter:
         self.carry_capacity = 100 #depends from race
         self.carry_current = 0
 
+        #For starting equipment
         for i in range(len(char_class.starting_equipment)):
             self.add_item(char_class.starting_equipment[i]["equipment"]["index"], char_class.starting_equipment[i]["quantity"])
+
+        #For optional equipment
+        for i in range(len(char_class.starting_equipment_options)):
+            temp_item = input(f"Would you like to take {char_class.starting_equipment_options[i]['desc']}? (a/b/c): ").lower()#number of options can vary
+            if temp_item == "a":
+                self.add_item(char_class.starting_equipment_options[i]["from"]["options"][0]['of']["index"], char_class.starting_equipment_options[i]["from"]["options"][0]["count"])
+            elif temp_item == "b": 
+                self.add_item(char_class.starting_equipment_options[i]["from"]["options"][1]['of']["index"], char_class.starting_equipment_options[i]["from"]["options"][1]["count"])
+            elif temp_item == "c":
+                self.add_item(char_class.starting_equipment_options[i]["from"]["options"][2]['of']["index"], char_class.starting_equipment_options[i]["from"]["options"][2]["count"])
+
+            else:
+                raise ValueError(f"Invalid input: {temp_item}. Must be one of: {', '.join(['a', 'b', 'c'])}")
+            
+        self.proficiencies = []
         
-        
+        #For proficiencies
+        for i in range(len(char_class.proficiency_choices)):
+            temp_choice = str(input(f"{char_class.proficiency_choices[i]["desc"]} (write the skill in lowercase and \'-\' for spaces): "))
+            choices = temp_choice.split(", ")
+            choices_list = list(choices)
+            for item in choices_list:
+                self.proficiencies.append(item)
+
+            break
+
         self.equipped_items = {"Head": None, "Body": None, "Cape": None, "Hands": None, "Feet": None, "Main Hand": None, "Off Hand": None}
         self.spells = []
         self.__level = 1
@@ -302,7 +331,8 @@ class PlayableCharacter:
             "spells": self.spells,
             "level": self.__level,
             "level_acm": self._level_acm,
-            "level_threshold": self._level_threshold
+            "level_threshold": self._level_threshold,
+            "proficiencies": self.proficiencies
         }
         return json.dumps(data, indent=4)
     
@@ -311,9 +341,12 @@ class PlayableCharacter:
             f.write(self._toJson())
     
 def test():
-    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="human", player_subclass="sorcerer")
+    #valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
+    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="human")
     print(pc1)
     print(pc1.get_inventory())
+    print(pc1.proficiencies)
+    pc1.save()
 
 
     """adamantine_armor = get_magic_item("adamantine-armor")
