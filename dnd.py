@@ -247,7 +247,7 @@ class PlayableCharacter:
         self.race = race
 
         char_class = get_player_class(player_class)
-        self.player_class = char_class.name
+        self.player_class = char_class.index
         self.player_subclass = player_subclass
 
         self.saving_throws = [dice["index"] for dice in char_class.saving_throws]
