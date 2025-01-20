@@ -167,10 +167,66 @@ def get_player_race(race = "NaN"):
         print(f"Race {race} not found")
         return None
 
+@dataclass
+class AllLanguages:
+    count: int
+    results: list
+    """type: str = field(default=None)
+    index: str = field(default=None)
+    name: str = field(default=None)
+    typical_speakers: list = field(default=None)
+    script: str = field(default=None)
+    url: str = field(default=None)
+    updated_at: str = field(default=None)"""
+
+def get_all_languages():
+    """
+    Given an race, returns an Race object with the properties of the race. If the given name is "NaN", returns None.
+    """
+    url = "https://www.dnd5eapi.co/api/languages/"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return AllLanguages(**response.json())
+    else:
+        return None
+    
+@dataclass
+class Languages:
+    index: str
+    name: str
+    type: str
+    typical_speakers: list
+    url: str
+    updated_at: str
+    desc: str = field(default=None)
+    script: str = field(default=None)
+
+def get_language(language = "NaN"):
+    """
+    Given an race, returns an Race object with the properties of the race. If the given name is "NaN", returns None.
+    """
+    url = "https://www.dnd5eapi.co/api/languages/" + language
+    response = requests.get(url)
+    if response.status_code == 200:
+        return Languages(**response.json())
+    else:
+        return None
+
 class PlayableCharacter:
     valid_backgrounds = ["acolyte", "charlatan", "criminal", "entertainer", "folk-hero", "guild-artisan", "hermit", "noble", "outlander", "sage", "sailor", "soldier", "urchin"]
     valid_alignments = ["lawful-good", "lawful-neutral", "lawful-evil", "neutral-good", "neutral-neutral", "neutral-evil", "chaotic-good", "chaotic-neutral", "chaotic-evil"]
+    
     valid_races = ["dragonborn", "dwarf", "elf", "gnome", "half-elf", "halfling", "half-orc", "human", "tiefling"]
+    race_language_convertion = {"dragonborn": "Dragonborn",
+                                "dwarf": "Dwarves",
+                                "elf": "Elves",
+                                "gnome": "Ogres",
+                                "half-elf": "Elves",
+                                "halfling": "Halflings",
+                                "half-orc": "Orcs",
+                                "human": "Humans",
+                                "tiefling": "Devils"}
+    
     valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
     valid_subclasses = [None, "berzerk", "champion", "devotion", "draconic", "evocation", "fiend", "hunter", "land", "life", "lore", "open-hand", "thief"]
     def __init__(self, name = None, background = None, alignment = None, race = None, player_class = None, player_subclass = None):
@@ -193,6 +249,8 @@ class PlayableCharacter:
         char_class = get_player_class(player_class)
         self.player_class = char_class.name
         self.player_subclass = player_subclass
+
+        self.saving_throws = [dice["index"] for dice in char_class.saving_throws]
 
         self.inventory = {}
         self.carry_capacity = 100 #depends from race
@@ -236,11 +294,20 @@ class PlayableCharacter:
             self.proficiencies.append(char_race.starting_proficiencies[i]["index"])
 
         self.spells = []
-        #append spells if any
+        #append spells if any for level 0
         char_spells = get_class_spell(self.player_class)
         for i in range(char_spells.count):
             if char_spells.results[i]["level"] == 0:
                 self.spells.append(char_spells.results[i]["index"])
+
+        #getting languages
+        char_languages = get_all_languages()
+        self.known_languages = []
+        for i in range(char_languages.count):
+            temp_lang = get_language(char_languages.results[i]["index"])
+            if self.race_language_convertion[self.race] in temp_lang.typical_speakers:
+                self.known_languages.append(char_languages.results[i]["index"])
+
 
         self.__level = 1
         self._level_acm = 0
@@ -377,6 +444,7 @@ class PlayableCharacter:
             "race": self.race,
             "player_class": self.player_class,
             "player_subclass": self.player_subclass,
+            "saving_throws": self.saving_throws,
             "inventory": self.inventory,
             "carry_capacity": self.carry_capacity,
             "carry_current": self.carry_current,
@@ -386,7 +454,8 @@ class PlayableCharacter:
             "level_acm": self._level_acm,
             "level_threshold": self._level_threshold,
             "proficiencies": self.proficiencies,
-            "spells": self.spells
+            "spells": self.spells,
+            "languages": self.known_languages
         }
         return json.dumps(data, indent=4)
     
@@ -396,17 +465,10 @@ class PlayableCharacter:
     
 def test():
     #valid_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
-    pc1 = PlayableCharacter("Char1", player_class="barbarian", background="sage",alignment="neutral-good", race="elf")
+    #valid_backgrounds = ["acolyte", "charlatan", "criminal", "entertainer", "folk-hero", "guild-artisan", "hermit", "noble", "outlander", "sage", "sailor", "soldier", "urchin"]
+    pc1 = PlayableCharacter("Char1", player_class="rogue", background="charlatan", alignment="neutral-good", race="tiefling")
     print(pc1)
-    print(pc1.get_inventory())
     pc1.save()
-
-
-    """adamantine_armor = get_magic_item("adamantine-armor")
-    print(adamantine_armor.name)
-
-    barbarian = get_player_class("barbarian")
-    print(barbarian.name)"""
 
     pass
 
