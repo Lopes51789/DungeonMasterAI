@@ -81,6 +81,7 @@ model = genai.GenerativeModel(
 )
 
 
+
 chat_session = model.start_chat(
   history=[
   ]
@@ -88,6 +89,13 @@ chat_session = model.start_chat(
 
 response = chat_session.send_message("Hello")
 print(response.text)
+time.sleep(1)
+files = [
+  upload_to_gemini("story.json", mime_type="application/json"),
+  upload_to_gemini("Char1.json", mime_type="application/json"),
+]
+wait_for_files_active(files)
+
 
 while True:
     user_input = input("User: ")
